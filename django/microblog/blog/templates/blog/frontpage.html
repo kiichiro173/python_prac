@@ -1,0 +1,14 @@
+{% extends "blog/base.html" %} {% block content %}
+
+{% for post in posts %}
+<div class="post block">
+    <h2 class="subtitle">
+        ブログのタイトル→ {{post.title}}
+    </h2>
+    <small>Posted at {{post.posted_date}}</small>
+    <p>{{post.body}}</p>
+    <a href="{% url 'post_detail' post.slug %}">詳しく</a>
+    <hr>
+</div>
+{% endfor %}
+{% endblock %}

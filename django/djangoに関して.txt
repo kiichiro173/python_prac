@@ -1,0 +1,63 @@
+Djangoに関して
+
+Djangoははじめにurls.pyを見にいく
+リクエストされたURLからviews.pyで定義されている関数を実行するファイル。
+↓
+views.pyを次に見ていく
+ここではhtmlファイルを管理していてそれを返すような関数。
+
+データベースに保存されている情報を持って行きたい場合は
+models.pyを使用してデータを取得しviews.pyにデータを返す
+そうすることによって、vies.pyがデータベースのデータを取得しながらhtmlファイルを返す事ができる。
+
+
+ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+諸々の基本設定に関して
+
+# 仮想環境の開始
+$ pipenv install --python 3.6
+$ pipenv install django
+
+# djangoを使用してプロジェクトを作成する。（microblogという名前のブログが完成している。）
+$ pipenv run django-admin startproject microblog
+
+#作成したmicroblogに移動する。
+$ cd microblog
+
+# アプリケーションの作成(blogという名前のアプリケーションを作成する。)
+$ pipenv run python manage.py startapp blog
+
+# 以下を実行することによって、サーバが立ち上がる。（出てきたURLから確認することができる。）
+$ pipenv run python manage.py runserver
+
+# 作成したアプリケーション(blog)をmicroblogのsetting.pyに定義するのを忘れないようにする。
+setting.pyのINSTALLED_APPSのところのリストに(今回であれば"blog")を追加する。
+好みにはよるが以下のように設定を変えても良い。
+LANGUAGE_CODE = 'ja'
+
+TIME_ZONE = 'Asia/Tokyo'
+
+setting.pyに関して
+DATABASESには使用しているDatabaseが定義されている。
+
+
+ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+アプリケーションの設定に関して
+blogのディレクトリ配下にtemplatesのフォルダを作成する。
+→ここにhtmlファイルを追記していったりする。
+
+基本的にはblogのディレクトり配下にあるviews.py に関数を作成していく。
+作成した関数をmicroblogディレクトリのurls.pyから呼び出すようにする。
+
+python manage.py migrate
+
+ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+models.pyに関して
+
+これはクラスとして定義する必要がある。
+データの定義を行ったら以下を実行する。
+$ pipenv run python manage.py makemigrations
+
+その後に連携する。(これを行うことで設定した情報を使用することができる。)
+以下を実行する前に必ず上記のmakemigrationsの実行を行う必要がある。
+$ pipenv run python manage.py migrate
