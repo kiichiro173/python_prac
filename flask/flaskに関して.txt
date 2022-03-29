@@ -1,0 +1,19 @@
+Flaskとは？？
+ Webアプリケーションのフレームワーク
+
+flaskのコマンドを使用
+$ pipenv run flask run
+
+flaskの場合は自動的には変更が反映されない様子？？
+→反映されるようにするには、デバックモードを設定する必要がある。
+→デバックを設定することによって、自動的に更新することができるようになる。
+以下デバックモードを設定する方法
+$ export FLASK_ENV=development
+$ pipenv run flask run
+
+
+以下を行うことでapp.pyがflaskのアプリケーションであることを示す。
+$ export FLASK_APP=app
+
+データベースを設定して色々とゴニョゴニョして行きたい場合は、flask_sqlalchemyをインストールする必要がある。
+$ pipenv install flask_sqlalchemy

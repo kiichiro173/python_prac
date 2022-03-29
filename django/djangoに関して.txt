@@ -61,3 +61,21 @@ $ pipenv run python manage.py makemigrations
 その後に連携する。(これを行うことで設定した情報を使用することができる。)
 以下を実行する前に必ず上記のmakemigrationsの実行を行う必要がある。
 $ pipenv run python manage.py migrate
+
+
+ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+# データを格納するために・・・・・
+データをSQLを使用しないでも格納できるようにするために、はどうするのか？？
+
+models.pyで作成したデータ情報に関しては
+admin.pyにて登録しておく必要がある。
+
+# ユーザの作成を行う。
+$ pipenv run python manage.py createsuperuser
+
+# その後管理者画面に移動する。
+http://127.0.0.1:8000/admin/
+
+# データベースに存在するデータを取得するには？？
+→views.pyで記述する。
+

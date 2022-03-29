@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+    <H1>ここには記事をどんどん記載していくよん！</H1>
+    <a href="/create" role="button">新規作成画面</a>
+    {% for post in posts %}
+    <article>
+        <h2>{{ post.title }}</h2>
+        <p>作成日時: {{ post.create_at }}</p>
+        <p>{{ post.body }}</p>
+    </article>
+    {% endfor %}
+{% endblock %}
