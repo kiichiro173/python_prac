@@ -1,0 +1,415 @@
+前回の復習。。。というかアプリケーションサービスに関して
+
+
+・ちょこっと振り返り。。。
+→4章のドメインサービスのところでチラッとアプリケーションサービスというワードが出てきた。
+→ドメイン駆動設計には大きく二つのサービスがある。
+→「ドメインのためのサービス」と「アプリケーションのためのサービス」
+→ドメインのためのサービスは、ドメインサービス（濱崎さんの回）。アプリケーションのためのサービスがアプリケーションサービス。
+→今回は後者のアプリケーションサービスについて取り上げる。
+
+6.1
+・アプリケーションサービスとは？？
+→ユースケースを実現するオブジェクト
+
+具体的には、以下のユースケースがあげられます。
+・ユーザーを登録する。
+・ユーザー情報を変更する
+など
+
+これらのユースケースを表現したのがアプリケーションサービス。
+
+6.2
+ユースケースを組み立てながらアプリケーションサービスを理解していく。
+→本では、ユーザー機能を例にしていた。
+→具体的にはCRUD（create,read,update,delete）処理
+
+アプリケーションサービスは
+・エンティティ(Userクラス）
+・値オブジェクト(UserId,UserNameクラス)
+・ドメインサービス(UserServiceクラス)
+・リポジトリ(IUserRepositoryクラス)
+→これら今まで学習してきたものを使用して作成する。
+
+
+・登録処理(create)
+→登録処理を見てみると、エンティティ（User）を作成し、ドメインサービス（UserService）を使用して重複チェックし、重複していないことが確認できたら、リポジトリ（UserRepository）を使用してユーザーを登録している。
+# 前回の野原さんが作成してくださった。programがApplicationServiceになる。
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        user_domain_service = UserService(self.user_repository)
+
+    # 登録処理(create)
+    def Register(self, user_name: str):
+        user:User = User(user_name)
+        if user_domain_service.exist(user):
+            raise ValueError(f"{user_name}はすでに存在しています")
+        else: self.user_repository.save(user)
+
+
+・ユーザーの読み込み（DTOに関して）
+登録とは違って結果を返却する必要がある。
+この時に「ドメインオブジェクトをそのまま戻り値として返すべきか？」を考える必要がある。
+なぜか？？
+このアプリケーションサービスを使用するクライアント側で意図しないことが発生するから。
+
+具体的には以下のようにClientでドメインオブジェクトの操作ができるようになってしまう（本来はドメインサービスの操作はアプリケーションサービスの役目）・・
+また、こうなると、ドメインオブジェクトの操作がいろいろなところでできるようになってしまう。
+→ドメインの定義が変わるごとに操作も変わるとなると修正する時にどこを変更しなきゃいけないのか把握するのが大変大変ってこと
+
+
+class User():
+    ...
+    def change_name(self, name: UserName):
+        self.name = name
+
+
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        user_domain_service = UserService(self.user_repository)
+
+    # ユーザー読み取り(read)
+    def get(self, user_id: str) -> User:
+        target_id: UserId = UserId(user_id)
+        user: User = self.user_repository.find(target_id)
+        return user
+
+class Client():
+    self.user_application_service: UserApplicationService = UserApplicationService()
+
+    def change_name(self, id: str, name: str):
+        target: User = self.user_application_service.get(id)
+        new_name: UserName = UserName(name)
+        # ここでドメインオブジェクトを操作してしまっている。
+        target.change_name(new_name)
+
+
+これを防ぐためにどうするのか？
+この本では「ドメインオブジェクトを公開しない」というのを推奨している。
+具体的には、クライアントに対してデータ転送用オブジェクト(DTO Data Transfer Object)にデータを移し替えて返却をする。
+→こうすることでUserApplicationServiceのgetメソッドをクライアント側で実行してもUserDataが返却されているのでUserのメソッドを呼び出すことができなくなる。
+
+
+class User():
+    ...
+    def change_name(self, name: UserName):
+        self.name = name
+
+# DTOの追加
+class UserData:
+    def __init__(self, Id, Name):
+        self.id = Id
+        self.name = Name
+
+
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        user_domain_service = UserService(self.user_repository)
+
+    # ユーザー読み取り(read)
+    def get(self, user_id: str) -> User:
+        target_id: UserId = UserId(user_id)
+        user: User = self.user_repository.find(target_id)
+        # ここがDTOを返却するようになった。
+        userdata: UserData = UserData(user.id , user.name)
+        return user
+
+class Client():
+    self.user_application_service: UserApplicationService = UserApplicationService()
+
+    def change_name(self, id: str, name: str):
+        target: UserData = self.user_application_service.get(id)
+        new_name: UserName = UserName(name)
+        # 今回UserApplicationServiceのgetメソッドで返却されたのはUserDataなのでchange_nameメソッドが存在しない
+        target.change_name(new_name)# できないよ！
+
+しかし、外部に公開するパラメータが追加された時はUserApplicationServiceのgetメソッドを修正する必要が出てくる。
+→例えば、欲しいデータがId、Name以外にmailの情報が欲しいといった場合など。
+→これだとDTOも修正してUserApplicationServiceのgetメソッドの引数も修正しなきゃなので修正箇所が多くって面倒。。。
+
+
+# DTOの追加
+class UserData:
+    def __init__(self, Id, Name, Mail):
+        self.id = Id
+        self.name = Name
+        # mailの追加
+        self.mail = Mail
+
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        user_domain_service = UserService(self.user_repository)
+
+    # ユーザー読み取り(read)
+    def get(self, user_id: str) -> User:
+        target_id: UserId = UserId(user_id)
+        user: User = self.user_repository.find(target_id)
+        # UserDataをインスタンスかするときの引数にuser.mailを追加することになる。
+        userdata: UserData = UserData(user.id , user.name,user.mail)
+        return user
+
+DTOのコンストラクタでUserのインスタンスを引数として受け取るようにするとこれに対処することができる。
+→具体的には以下のようにUserDataのコンストラクタの引数として受け取るのをUserにすることでUserApplicationServiceのgetメソッドでは修正する必要がない。
+→これにより修正箇所はUserDataのみになって、修正する際に気をつける箇所が少なくなって対応が楽になる。
+
+# DTOの追加
+class UserData:
+    # Userを引数として取得するよう修正
+    def __init__(self, source: User):
+        self.id = source.id
+        self.name = source.name
+        self.mail = source.mail
+
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        user_domain_service = UserService(self.user_repository)
+
+    # ユーザー読み取り(read)
+    def get(self, user_id: str) -> User:
+        target_id: UserId = UserId(user_id)
+        user: User = self.user_repository.find(target_id)
+        # UserDataにはuserを渡すだけなので、外部に公開するパラメータが増えたとしてもgetメソッドは修正する必要がない
+        userdata: UserData = UserData(user)
+        return user
+
+
+
+・コマンドオブジェクトに関して
+更新処理を行う時に開発を進めていくと更新したい項目が増えるということがある。
+→本だと、最初はnameのみを更新したかったが、mailも更新したいといった例を取り上げている。
+→この時、ユーザー情報が追加されるたびにアプリケーションサービスのメソッドのシグネチャが変更されることになってしまい修正するのが大変になってくる。
+
+# nameの更新のみ
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        self.user_domain_service = UserService(self.user_repository)
+
+    # 更新
+    def update(self, user_id: str, update_name: str):
+        target_id: UserId = UserId(user_id)
+        user: Optional[User] = self.user_repository.find(target_id)
+        if user is None:
+            raise UserNotFoundException(target_id)
+
+        new_user_name: UserName = UserName(update_name)
+        user.change_name(new_user_name)
+        if self.user_domain_service.exists(user):
+            raise CanNotRegisterUserException(user, "ユーザはすでに存在しています")
+
+        self.user_domain_service.save(user)
+
+# mailの更新の追加
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        self.user_domain_service = UserService(self.user_repository)
+
+    # 引数が追加されている。
+    def update(self, user_id: str, update_name: Optional[str] = None, update_mail: Optional[str] = None):
+        target_id: UserId = UserId(user_id)
+        user: Optional[User] = self.user_repository.find(target_id)
+        if user is None:
+            raise UserNotFoundException(target_id)
+
+        # メールアドレスだけを更新するため、ユーザ名が指定されないことを考慮
+        if update_name is not None:
+            new_user_name: UserName = UserName(update_name)
+            user.change_name(new_user_name)
+            if self.user_domain_service.exists(user):
+                raise CanNotRegisterUserException(user, "ユーザはすでに存在しています")
+
+        # メールアドレスを変更できるように追加
+        if update_mail is not None:
+            new_mail: MailAddress = MailAddress(update_mail)
+            user.change_mail_address(new_mail)
+
+        self.user_domain_service.save(user)
+
+上記のような問題に対処するためにコマンドオブジェクトを使用する。
+→コマンドオブジェクトを使用することによって更新する項目が増えたとしてもupdateメソッド引数を変更することなく対処することができるようになる。
+→コマンドオブジェクトを作ることは間接的にアプリケーションサービスの処理を制御することと同義。つまりコマンドオブジェクトは処理のファザード（今回で言うと更新処理の窓口）とも言える。。。。
+
+class UserUpdateCommand:
+    def _init_():
+        id: str
+        name: Optional[str] = None
+        mail_address: Optional[str] = None
+
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        self.user_domain_service = UserService(self.user_repository)
+
+    # 更新する項目が追加されてもupdateメソッドの引数はcommandだけで変わらない。
+    def update(self, command: UserUpdateCommand):
+        target_id: UserId = UserId(command.id)
+        user: Optional[User] = self.user_repository.find(target_id)
+        if user is None:
+            raise UserNotFoundException(target_id)
+
+        update_name: Optional[str] = command.name
+        if update_name is not None:
+            new_user_name: UserName = UserName(update_name)
+            user.change_name(new_user_name)
+            if self.user_domain_service.exists(user):
+                raise CanNotRegisterUserException(user, "ユーザはすでに存在しています")
+
+        update_mail: Optional[str] = command.mail
+        if update_mail is not None:
+            new_mail: MailAddress = MailAddress(update_mail)
+            user.change_mail_address(new_mail)
+
+        self.user_domain_service.save(user)
+
+・ドメインルールの流出
+アプリケーションサービスはあくまでもドメインオブジェクトのタスク調整に徹するべき。
+→よって、アプリケーションサービスにはドメインのルールは記述されるべきではない。
+→仮にドメインのルールをアプリケーションサービスに記述してしまうと同じようなコードがあちこちに溢れてしまう。。。
+
+例：重複を許さないと言うドメインルールをアプリケーションサービスにも記載した場合・・・
+→登録するときも更新するときも重複していないか確認しなければならない。
+→このとき、もし重複確認するルールをnameからmailに変更になった場合、UserApplicationServiceのregisterメソッドupdateメソッドを修正することになる。
+→これだとアプリケーションサービスのメソッドが増えたときに修正箇所が多くなってしまい大変・
+
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        user_domain_service = UserService(self.user_repository)
+
+    # 登録処理(create)
+    def register(self, user_name: str):
+        # 重複確認を行うコード
+        user_name: UserName = UserName(name)
+        duplicated_user: Optional[User] = self._user_repository.find_name(user_name)
+        if duplicated_user is not None:
+            raise CanNotRegisterUserException(duplicated_user, "ユーザはすでに存在しています")
+
+        user:User = User(user_name)
+        else: self.user_repository.save(user)
+
+    # 更新処理
+    def update(self, command: UserUpdateCommand):
+        target_id: UserId = UserId(command.id)
+        user: Optional[User] = self.user_repository.find_id(target_id)
+        if user is None:
+            raise UserNotFoundException(target_id)
+
+        update_name: Optional[str] = command.name
+        if update_name is not None:
+            new_user_name: UserName = UserName(update_name)
+            # 重複確認を行うコードの追加
+            duplicated_user: Optional[User] = self.user_repository.find_name(new_user_name)
+            if duplicated_user is not None:
+                raise CanNotRegisterUserException(duplicated_user, "ユーザはすでに存在しています")
+
+            user.change_name(new_user_name)
+
+
+        update_mail: Optional[str] = command.mail
+        if update_mail is not None:
+            new_mail: MailAddress = MailAddress(update_mail)
+            user.change_mail_address(new_mail)
+
+        self.user_domain_service.save(user)
+
+この問題に解決するためにはアプリケーションサービスにはドメインのルールを記述しないことが大切。
+→ドメインルールに関してはドメインオブジェクトをに記述し、アプリケーションサービスではドメインサービスのみを使用するようにする。
+こうすることによってユーザーサービスののexistメソッドを使用している箇所を確認して必要に応じて修正することで対応することができる。
+
+
+class UserApplicationService():
+    def _init_():
+        self.user_repository = UserRepository()
+        user_domain_service = UserService(self.user_repository)
+
+    # 登録処理(create)
+    def register(self, user_name: str):
+        # 重複確認を行うコード
+        user_name: UserName = UserName(name)
+        duplicated_user: Optional[User] = self._user_repository.find_name(user_name)
+        if duplicated_user is not None:
+            raise CanNotRegisterUserException(duplicated_user, "ユーザはすでに存在しています")
+
+        user:User = User(user_name)
+        else: self.user_repository.save(user)
+
+    # 更新処理
+    def update(self, command: UserUpdateCommand):
+        target_id: UserId = UserId(command.id)
+        user: Optional[User] = self.user_repository.find_id(target_id)
+        if user is None:
+            raise UserNotFoundException(target_id)
+
+        update_name: Optional[str] = command.name
+        if update_name is not None:
+            new_user_name: UserName = UserName(update_name)
+            # 重複確認を行うコードの追加
+            duplicated_user: Optional[User] = self.user_repository.find_name(new_user_name)
+            if duplicated_user is not None:
+                raise CanNotRegisterUserException(duplicated_user, "ユーザはすでに存在しています")
+
+            user.change_name(new_user_name)
+
+
+        update_mail: Optional[str] = command.mail
+        if update_mail is not None:
+            new_mail: MailAddress = MailAddress(update_mail)
+            user.change_mail_address(new_mail)
+
+        self.user_domain_service.save(user)
+
+
+・凝集度に関して
+凝集度とは？？
+→モジュールの責任範囲がどれだけ集中しているのかを測る尺度。
+→モジュールが一つの事柄に集中することは好ましいとされている。
+
+この凝集度を測る方法の一つとしてLCOM(lack of conhesion in methods)と言う計算式がある。
+（https://fj.hatenablog.jp/entry/2016/04/24/213759）
+
+
+凝集度が低いクラスは以下のような感じ
+→value1はmethod_aで使用されているが、method_bでは使用されていない。
+→つまりvalue1はmethod_bには関係がない。
+
+# 凝集度がひいクラス
+class LowCohesion:
+    def _init_():
+        self.value1: int = value1
+        self.value2: int = value2
+        self.value3: int = value3
+        self.value4: int = value4
+
+    def method_a(self) -> int:
+        return self.value1 + self.value2
+    
+    def method_b(self) -> int:
+        return self.value3 + self.value4
+
+こういった時にこれらを分離することで凝集度は高めることができる。
+以下を参照
+
+class HighCohesionA:
+    def _init_():
+        self.value1: int = value1
+        self.value2: int = value2
+
+    def method_a(self) -> int:
+        return self.value1 + self.value2
+
+class HighCohesionB:
+    def _init_():
+        self.value3: int = value3
+        self.value4: int = value4
+
+    def method_b(self) -> int:
+        return self.value3 + self.value4
+
+あくまでも凝縮度は一つの
+登録と退会処理に関して！

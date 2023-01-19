@@ -1,0 +1,3 @@
+$ docker login
+$ docker pull datascientistus/ds-python-env3
+$ docker run --rm -v $PWD/kameml:/work -p 8888:8888 --name kame_ml_env datascientistus/ds-python-env3
