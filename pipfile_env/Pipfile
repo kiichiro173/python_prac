@@ -1,0 +1,25 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+jupyter = "*"
+pandas = "*"
+numpy = "*"
+matplotlib = "*"
+scipy = "*"
+seaborn = "*"
+scikit-learn = "*"
+python-dateutil = "*"
+botocore = "*"
+lightgbm = "*"
+xgboost = "*"
+ginza = "*"
+ja-ginza-electra = "*"
+mecab = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"

@@ -1,0 +1,62 @@
+<前提>
+・Anaconda は商用利用不可なので、Anacondaをアンインストールする必要があります。
+・pipenv というコマンドを使用して、python を使用する環境を作ります。
+・pipenv は指定のフォルダ（プロジェクト）ごとに、python の環境を作ることができます。
+・pipfile と pipfile.locのファイルを共有するので、それを使用して環境構築してください。
+
+<Anacondaのアンインストール方法>
+
+https://chitose-nanase.com/windows10-anaconda-uninstall/
+
+
+
+<pipenv のインストール>
+①	以下のコマンドを打ち、pipenv をインストールします。
+pip install --user pipenv
+
+<pipenv で環境構築>
+①	Python の環境を作るフォルダを作ります。
+・フォルダは、自身が管理しやすい場所ならどこでもよいです。(フォルダ名もローマ字であればなんでもよいです。)
+・以下ではデスクトップの配下に test_env フォルダを作ってやっていきます。
+
+②	test_envフォルダの中にpipfile と pipfile.loc を置きます。
+③	Power shell を開き、test_env があるところまで移動してください。
+・cd コマンドを使用して、移動することができます。
+④	移動したら以下のコマンドを打ち、仮想環境を構築します。
+Pipenv install
+
+一度、pipenv install すれば二回目以降は行わなくてよいです！
+
+<jupyter notebook の立ち上げ>
+②	Powershell を開き、<pipenv で環境構築>で作成したフォルダに移動します。
+・cd コマンドを利用して、指定のフォルダに移動してください。
+③	以下のコマンドを打ち、jupyter notebook を開きます。
+Pipenv run jupyter notebook
+
+
+
+
+
+
+
+<参考資料>
+Cd とは？？
+https://eng-entrance.com/windows-command-cd
+
+Pipenv コマンド
+https://qiita.com/naozo-se/items/2d1a0784d8625e618ca4
+
+シェルスクリプトがうまく動かない場合
+https://qiita.com/ponsuke0531/items/4629626a3e84bcd9398f
+
+pipenv が使えない場合（環境変数にpath を追加する。）
+https://www.aska-ltd.jp/jp/blog/53
+
+<Python がインストールされていない場合>
+URLをもとにインストール
+https://docs.aws.amazon.com/ja_jp/elasticbeanstalk/latest/dg/eb-cli3-install-windows.html
+
+<jupyter 内での pip install と pipenv install の挙動の違い>
+・pipfile に書き込まれるかどうかの違い
+→pip install であれば、今の仮想環境にライブラリはインストールされるが、pipfile には書き込まれない。
+→pipenv install であれば、今の仮想環境にも書き込まれるし、pipfile にも書き込まれる。（なので、ファイルを共有するときとかはこっちのほうが良い。）
